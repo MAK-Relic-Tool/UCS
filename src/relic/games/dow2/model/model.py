@@ -14,8 +14,8 @@ from serialization_tools.vstruct import VStruct
 from relic.chunky import FolderChunk, GenericDataChunk, RelicChunky, ChunkyVersion, GenericRelicChunky, AbstractChunk, ChunkHeaderV0301
 from relic.chunky._core import ChunkType
 from relic.chunky.serializer import read_chunky
-from relic.chunky_formats.convertable import ChunkConverterFactory
-from relic.chunky_formats.util import ChunkCollectionX
+from relic.games.convertable import ChunkConverterFactory
+from relic.games.util import ChunkCollectionX
 from relic.file_formats.mesh_io import Float3, Float2
 
 

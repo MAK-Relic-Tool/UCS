@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Dict
 
 from relic.chunky import GenericRelicChunky
-from relic.chunky_formats.dow2.model.obj_writer import write_model as write_model_obj
-from relic.chunky_formats.dow2.model.json_writer import write_model as write_model_json
-from relic.chunky_formats.dow2.model.model import ModelChunky
+from relic.games.dow2.model.obj_writer import write_model as write_model_obj
+from relic.games.dow2.model.json_writer import write_model as write_model_json
+from relic.games.dow2.model.model import ModelChunky
 from scripts.universal.chunky.extractors.common import get_runner
 from scripts.universal.common import SharedExtractorParser
 

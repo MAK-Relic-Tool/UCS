@@ -1,7 +1,10 @@
-from typing import Any
+"""
+Errors shared across all Relic Tools.
+"""
+from typing import Any, Optional, TypeVar, Generic
 
 
-def _print_mismatch(name: str, received, expected):
+def _print_mismatch(name: str, received: Optional[Any], expected: Optional[Any]) -> str:
     msg = f"Unexpected {name}"
     if received or expected:
         msg += ";"
@@ -14,11 +17,19 @@ def _print_mismatch(name: str, received, expected):
     return msg + "!"
 
 
-class MismatchError(Exception):
-    def __init__(self, name: str, received: Any = None, expected: Any = None):
+T = TypeVar("T")
+
+
+class MismatchError(Generic[T], Exception):
+    """
+    An error where an expected value did not match the actual recieved value.
+    """
+
+    def __init__(self, name: str, received: Optional[T] = None, expected: Optional[T] = None):
+        super().__init__()
         self.name = name
         self.received = received
         self.expected = expected
 
-    def __str__(self):
+    def __str__(self) -> str:
         return _print_mismatch(self.name, self.received, self.expected)

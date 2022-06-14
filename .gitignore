@@ -19,3 +19,5 @@ dist/*
 src/scripts/*.bin
 ignore/texconv.exe
 tests/relic/**/sources.json
+# Ignore docs
+docs/build/**

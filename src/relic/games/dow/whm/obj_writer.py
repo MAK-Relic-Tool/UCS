@@ -6,10 +6,10 @@ from os.path import split, splitext, join, basename
 from pathlib import Path
 from typing import TextIO, Iterable, BinaryIO, List, Any
 
-from relic.chunky_formats.dow.common_chunks.imag import TxtrChunk
-from relic.chunky_formats.dow.common_chunks.imag_writer import ImagConverter
-from relic.chunky_formats.dow.whm.whm import MsgrChunk, WhmChunky, RsgmChunkV3, SkelChunk
-from relic.chunky_formats.dow.whm.mesh import MslcChunk
+from relic.games.dow.common_chunks.imag import TxtrChunk
+from relic.games.dow.common_chunks.imag_writer import ImagConverter
+from relic.games.dow.whm.whm import MsgrChunk, WhmChunky, RsgmChunkV3, SkelChunk
+from relic.games.dow.whm.mesh import MslcChunk
 # from relic.chunky_formats.whm.skel_chunk import SkelChunk, Skeleton
 from relic.file_formats.mesh_io import Float3
 from relic.file_formats.wavefront_obj import ObjWriter, MtlWriter

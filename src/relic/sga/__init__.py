@@ -7,5 +7,5 @@ __all__ = [
     "Version",
     "MagicWord",
     "StorageType",
-    "VerificationType"
+    "VerificationType",
 ]

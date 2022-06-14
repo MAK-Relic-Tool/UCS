@@ -6,11 +6,11 @@ from typing import List, Optional
 from relic.chunky import AbstractChunk, FolderChunk
 from relic.chunky._core import ChunkType
 from relic.chunky.chunky import RelicChunky, GenericRelicChunky
-from relic.chunky_formats.dow.common_chunks.fbif import FbifChunk
-from relic.chunky_formats.util import find_chunks, find_chunk, UnimplementedDataChunk
-from relic.chunky_formats.dow.events import EvctChunk
-from relic.chunky_formats.dow.rml import MtreChunk, ModlChunk
-from relic.chunky_formats.dow.whm.animation import AnbvChunk, AnimChunk
+from relic.games.dow.common_chunks.fbif import FbifChunk
+from relic.games.util import find_chunks, find_chunk, UnimplementedDataChunk
+from relic.games.dow.events import EvctChunk
+from relic.games.dow.rml import MtreChunk, ModlChunk
+from relic.games.dow.whm.animation import AnbvChunk, AnimChunk
 
 
 @dataclass

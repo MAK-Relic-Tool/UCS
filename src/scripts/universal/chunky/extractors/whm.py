@@ -2,9 +2,9 @@ import argparse
 from typing import Dict
 
 from relic.chunky import GenericRelicChunky
-from relic.chunky_formats.dow.whm.whm import WhmChunky
-from relic.chunky_formats.dow.whm.obj_writer import write_whm as write_whm_obj
-from relic.chunky_formats.dow.whm.json_writer import write_whm as write_whm_json
+from relic.games.dow.whm.whm import WhmChunky
+from relic.games.dow.whm.obj_writer import write_whm as write_whm_obj
+from relic.games.dow.whm.json_writer import write_whm as write_whm_json
 from scripts.universal.chunky.extractors.common import get_runner
 from scripts.universal.common import SharedExtractorParser
 

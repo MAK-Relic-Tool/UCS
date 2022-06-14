@@ -121,6 +121,8 @@ class RawChunkSerializer(StreamSerializer[AnyRawChunk]):
             return self._unpack_data(stream, header)
         elif header.type == ChunkType.Folder:
             return self._unpack_folder(stream, header)
+        else:
+            raise NotImplementedError
 
     def pack(self, stream: BinaryIO, packable: AnyRawChunk) -> int:
         if packable.type == ChunkType.Data:

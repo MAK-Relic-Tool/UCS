@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from relic.sga import _abc
-from relic.sga._abc import FileDefABC
-from relic.sga.errors import Version
-from relic.sga._core import VerificationType
+from relic.sga._core import VerificationType, Version
 
 version = Version(7)
 
@@ -18,7 +16,7 @@ class ArchiveMetadata:
 
 
 @dataclass
-class FileDef(FileDefABC):
+class FileDef(_abc.FileDefABC):
     modified: datetime
     verification: VerificationType
     crc: int
@@ -33,7 +31,7 @@ class FileMetadata:
     hash_pos: int
 
 
-Archive = _abc.Archive[ArchiveMetadata]
+Archive = _abc.Archive[ArchiveMetadata,FileMetadata]
 Folder = _abc.Folder
 File = _abc.File[FileMetadata]
 Drive = _abc.Drive

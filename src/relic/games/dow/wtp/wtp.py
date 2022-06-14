@@ -11,8 +11,8 @@ from serialization_tools.vstruct import VStruct
 from relic.chunky.chunk.chunk import GenericDataChunk, AbstractChunk, FolderChunk
 from relic.chunky._core import ChunkType
 from relic.chunky.chunky.chunky import GenericRelicChunky, RelicChunky
-from relic.chunky_formats.dow.common_chunks.imag import ImagChunk
-from relic.chunky_formats.util import find_chunks, find_chunk
+from relic.games.dow.common_chunks.imag import ImagChunk
+from relic.games.util import find_chunks, find_chunk
 
 
 # Painted Team Layer Data?

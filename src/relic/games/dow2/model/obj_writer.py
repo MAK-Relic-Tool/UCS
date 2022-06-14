@@ -2,7 +2,7 @@ from enum import Enum
 from os.path import split, splitext, join
 from typing import TextIO, Iterable, List, Tuple
 
-from relic.chunky_formats.dow2.model.model import MtrlChunk, ModelChunky, TrimDataChunk, VarChunk, TextureVar
+from relic.games.dow2.model.model import MtrlChunk, ModelChunky, TrimDataChunk, VarChunk, TextureVar
 from relic.file_formats.wavefront_obj import ObjWriter, MtlWriter
 
 

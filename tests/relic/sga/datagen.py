@@ -123,10 +123,12 @@ class DowI:
             comp_size = decomp_size
         if comp_flag is None:
             if comp_size != decomp_size:
-                comp_flag = 32  # StorageType.StreamCompress  # IDK, just choose one
+                comp_flag = StorageType.STREAM_COMPRESS # 32  # StorageType.StreamCompress  # IDK, just choose one
             else:
-                comp_flag = 0  # StorageType.Store
-        return uint(name_offset) + uint(comp_flag) + uint(data_offset) + uint(decomp_size) + uint(comp_size)
+                comp_flag = StorageType.STORE # 0  # StorageType.Store
+        COMP_FLAG_TABLE = {StorageType.STORE:0, StorageType.STREAM_COMPRESS:32, StorageType.BUFFER_COMPRESS:16}
+        comp_flag_val = COMP_FLAG_TABLE[comp_flag]
+        return uint(name_offset) + uint(comp_flag_val) + uint(data_offset) + uint(decomp_size) + uint(comp_size)
 
     @staticmethod
     def gen_name_buffer(*names: str, encoding: str = "ascii") -> Tuple[bytes, Dict[str, int]]:
@@ -159,7 +161,7 @@ class DowI:
         # return ArchiveTOC([vdrive], [folder], [file], names)
 
     @classmethod
-    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = "_ARCHIVE") -> bytes:
+    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = b"_ARCHIVE") -> bytes:
         ARCHIVE_HEADER_SIZE = 180
         full_toc = toc_ptrs + toc
         EIGENS = ("E01519D6-2DB7-4640-AF54-0A23319C56C3".encode("ascii"), "DFC9AF62-FC1B-4180-BC27-11CCE87D3EFF".encode("ascii"))
@@ -281,7 +283,7 @@ class DowII:
     gen_toc = DowI.gen_toc
 
     @classmethod
-    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = "_ARCHIVE") -> bytes:
+    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = b"_ARCHIVE") -> bytes:
         full_toc = toc_ptrs + toc
         EIGENS = ("E01519D6-2DB7-4640-AF54-0A23319C56C3".encode("ascii"), "DFC9AF62-FC1B-4180-BC27-11CCE87D3EFF".encode("ascii"))
 
@@ -425,7 +427,7 @@ class DowIII:
         # return ArchiveTOC([vdrive], [folder], [file], names)
 
     @classmethod
-    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = "_ARCHIVE") -> bytes:
+    def gen_archive_buffer(cls, archive_name: str, toc_ptrs: bytes, toc: bytes, data: bytes, magic: bytes = b"_ARCHIVE") -> bytes:
         full_toc = toc_ptrs + toc
         toc_and_data = full_toc + data
         header_buffer = cls.gen_archive_header_buffer(archive_name, cls.ARCHIVE_HEADER_SIZE, len(full_toc), cls.ARCHIVE_HEADER_SIZE + len(full_toc), len(data), magic=magic)

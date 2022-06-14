@@ -5,9 +5,8 @@ from datetime import datetime
 
 from relic.sga import _abc
 from relic.sga._abc import FileDefABC
-from relic.sga._core import VerificationType
-from relic.sga._serializers import _Md5ChecksumHelper
-from relic.sga.errors import Version
+from relic.sga._core import VerificationType, Version
+from relic.sga._serializers import Md5ChecksumHelper
 
 version = Version(5)
 
@@ -16,14 +15,18 @@ version = Version(5)
 class ArchiveMetadata:
     @property
     def file_md5(self) -> bytes:
+        if self._file_md5.expected is None:
+            raise TypeError("Md5 Checksum was not saved in metadata!")
         return self._file_md5.expected
 
     @property
     def header_md5(self) -> bytes:
+        if self._header_md5.expected is None:
+            raise TypeError("Md5 Checksum was not saved in metadata!")
         return self._header_md5.expected
 
-    _file_md5: _Md5ChecksumHelper
-    _header_md5: _Md5ChecksumHelper
+    _file_md5: Md5ChecksumHelper
+    _header_md5: Md5ChecksumHelper
     unk_a:int
 
 
@@ -39,7 +42,7 @@ class FileMetadata:
     verification: VerificationType
 
 
-Archive = _abc.Archive[ArchiveMetadata]
+Archive = _abc.Archive[ArchiveMetadata,FileMetadata]
 Folder = _abc.Folder
 File = _abc.File[FileMetadata]
 Drive = _abc.Drive

@@ -8,7 +8,7 @@ from relic.chunky.chunk.chunk import AbstractChunk, GenericDataChunk, FolderChun
 from relic.chunky.chunk.header import ChunkHeader
 from relic.chunky._core import ChunkType
 from relic.chunky.chunky.chunky import GenericRelicChunky
-from relic.chunky_formats.protocols import ChunkDefinition, ChunkyDefinition, ConvertableFolderChunk, ConvertableDataChunk, ConvertableChunky
+from relic.games.protocols import ChunkDefinition, ChunkyDefinition, ConvertableFolderChunk, ConvertableDataChunk, ConvertableChunky
 
 
 class SupportsFolderChunkAutoConvert(ChunkDefinition, ConvertableFolderChunk):

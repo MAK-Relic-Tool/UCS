@@ -5,8 +5,7 @@ from datetime import datetime
 
 from relic.sga import _abc
 from relic.sga._abc import FileDefABC
-from relic.sga._core import VerificationType
-from relic.sga.errors import Version
+from relic.sga._core import VerificationType, Version
 
 version = Version(9)
 
@@ -35,7 +34,7 @@ class FileMetadata:
     hash_pos: int
 
 
-Archive = _abc.Archive[ArchiveMetadata]
+Archive = _abc.Archive[ArchiveMetadata,FileMetadata]
 Folder = _abc.Folder
 File = _abc.File[FileMetadata]
 Drive = _abc.Drive

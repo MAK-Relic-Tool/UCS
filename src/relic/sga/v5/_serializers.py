@@ -5,9 +5,11 @@ from typing import BinaryIO, ClassVar, Optional
 
 from serialization_tools.structx import Struct
 
+from relic.sga._abc import ArchivePtrs
+from relic.sga._serializers import read_toc, load_lazy_data
+
 import relic.sga._serializers
 from relic.sga import _abc, _serializers as _s
-from relic.sga._abc import Archive
 from relic.sga.errors import VersionMismatchError
 from relic.errors import MismatchError
 from relic.sga.protocols import StreamSerializer
@@ -27,20 +29,19 @@ class FileDefSerializer(StreamSerializer[core.FileDef]):
     def __init__(self, layout: Struct):
         self.layout = layout
 
-    def unpack(self, stream: BinaryIO):
-
+    def unpack(self, stream: BinaryIO) -> core.FileDef:
         name_rel_pos, data_rel_pos, length, store_length, modified_seconds, verification_type_val, storage_type_val = self.layout.unpack_stream(stream)
 
         modified = datetime.fromtimestamp(modified_seconds, timezone.utc)
         storage_type: StorageType = StorageType(storage_type_val)
-        verification_type:VerificationType = VerificationType(verification_type_val)
+        verification_type: VerificationType = VerificationType(verification_type_val)
 
         return core.FileDef(name_rel_pos, data_rel_pos, length, store_length, storage_type, modified, verification_type)
 
     def pack(self, stream: BinaryIO, value: core.FileDef) -> int:
         modified: int = int(value.modified.timestamp())
         storage_type = value.storage_type.value  # convert enum to value
-        verification_type = value.verification.value # convert enum to value
+        verification_type = value.verification.value  # convert enum to value
         args = value.name_pos, value.data_pos, value.length_on_disk, value.length_in_archive, storage_type, modified, verification_type
         return self.layout.pack_stream(stream, *args)
 
@@ -50,47 +51,50 @@ toc_layout = Struct("<IH IH IH IH")
 toc_header_serializer = _s.TocHeaderSerializer(toc_layout)
 
 
-class APISerializers(_abc.APISerializer):
+class APISerializers(_abc.ArchiveSerializer):
     FILE_MD5_EIGEN: ClassVar = b"E01519D6-2DB7-4640-AF54-0A23319C56C3"
     HEADER_MD5_EIGEN: ClassVar = b"DFC9AF62-FC1B-4180-BC27-11CCE87D3EFF"
 
-    def read(self, stream: BinaryIO, lazy: bool = False, decompress: bool = True) -> Archive:
+    def read(self, stream: BinaryIO, lazy: bool = False, decompress: bool = True) -> core.Archive:
         MagicWord.read_magic_word(stream)
         version = Version.unpack(stream)
         if version != self.version:
-            raise VersionMismatchError(version,self.version)
+            raise VersionMismatchError(version, self.version)
 
         encoded_name: bytes
-        file_md5, encoded_name, header_md5, header_size, data_pos, header_pos, RSV_1, RSV_0, unk_a = self.layout.unpack_stream(stream)
-        if (RSV_1, RSV_0) != (1, 0):
-            raise MismatchError("Reserved Field", (RSV_1, RSV_0), (1, 0))
+        file_md5, encoded_name, header_md5, header_size, data_pos, header_pos, rsv_1, rsv_0, unk_a = self.layout.unpack_stream(stream)
+        if (rsv_1, rsv_0) != (1, 0):
+            raise MismatchError("Reserved Field", (rsv_1, rsv_0), (1, 0))
+        ptrs = ArchivePtrs(header_pos,header_size,data_pos)
         # header_pos = stream.tell()
         stream.seek(header_pos)
         toc_header = self.TocHeader.unpack(stream)
-        drive_defs, folder_defs, file_defs = _s._read_toc_definitions(stream, toc_header, header_pos, self.DriveDef, self.FolderDef, self.FileDef)
-        names = _s._read_toc_names_as_count(stream, toc_header.name_info, header_pos)
-        drives, files = _s._assemble_io_from_defs(drive_defs, folder_defs, file_defs, names, data_pos, stream,decompress=decompress)
+        drives, files = read_toc(
+            stream=stream,
+            toc_header=toc_header,
+            ptrs=ptrs,
+            drive_def=self.DriveDef,
+            file_def=self.FileDef,
+            folder_def=self.FolderDef,
+            decompress=decompress,
+            build_file_meta=lambda _: None,  # V2 has no metadata
+            name_toc_is_count=True
+        )
 
         if not lazy:
-            for file in files:
-                lazy_info: Optional[_abc._FileLazyInfo] = file._lazy_info
-                if lazy_info is None:
-                    raise Exception("API read files, but failed to create lazy info!")
-                else:
-                    file.data = lazy_info.read(decompress)
-                    file._lazy_info = None
+            load_lazy_data(files)
 
         name: str = encoded_name.rstrip(b"").decode("utf-16-le")
-        file_md5_helper = relic.sga._serializers._Md5ChecksumHelper(file_md5, stream, header_pos, eigen=self.FILE_MD5_EIGEN)
-        header_md5_helper = relic.sga._serializers._Md5ChecksumHelper(file_md5, stream, header_pos, header_size, eigen=self.FILE_MD5_EIGEN)
+        file_md5_helper = relic.sga._serializers.Md5ChecksumHelper(file_md5, stream, header_pos, eigen=self.FILE_MD5_EIGEN)
+        header_md5_helper = relic.sga._serializers.Md5ChecksumHelper(header_md5, stream, header_pos, header_size, eigen=self.FILE_MD5_EIGEN)
         metadata = core.ArchiveMetadata(file_md5_helper, header_md5_helper, unk_a)
 
-        return Archive(name, metadata, drives)
+        return core.Archive(name, metadata, drives)
 
-    def write(self, stream: BinaryIO, archive: Archive) -> int:
+    def write(self, stream: BinaryIO, archive: core.Archive) -> int:
         raise NotImplementedError
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.DriveDef = drive_serializer
         self.FolderDef = folder_serializer
         self.FileDef = file_serializer

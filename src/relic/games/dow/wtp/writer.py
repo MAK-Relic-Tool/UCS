@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import BinaryIO
 
-from relic.chunky_formats.dow.wtp.wtp import WtpChunky, WtpInfoChunk, PtldChunk
+from relic.games.dow.wtp.wtp import WtpChunky, WtpInfoChunk, PtldChunk
 from relic.file_formats.dxt import build_dow_tga_gray_header
 
 

@@ -7,7 +7,7 @@ from typing import Union, Iterable, Tuple, List
 import pytest
 
 from relic.sga import v2, v5, v9, MagicWord, Version, v7
-from relic.sga.protocols import API
+from relic.sga.protocols import ArchiveIO as API
 from tests.relic.sga.datagen import DowII, DowI, DowIII
 
 
@@ -34,12 +34,12 @@ def scan_directory(root_dir: str, desired_version: Version) -> Iterable[str]:
         yield str(path_object)
 
 
-def fast_gen_dow1_archive(*args):
-    return None, DowI.gen_sample_archive_buffer(*args)
-
-
 def prepare_for_parametrize(files: Iterable[str]) -> Iterable[Tuple[str]]:
     return [(_,) for _ in files]
+
+
+def fast_gen_dow1_archive(*args):
+    return None, DowI.gen_sample_archive_buffer(*args)
 
 
 _path = Path(__file__).parent

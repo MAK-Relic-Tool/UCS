@@ -2,8 +2,8 @@ import argparse
 from typing import Dict
 
 from relic.chunky import GenericRelicChunky
-from relic.chunky_formats.dow.fda.chunky import FdaChunky
-from relic.chunky_formats.dow.fda.audio_converter import FdaAudioConverter
+from relic.games.dow.fda.chunky import FdaChunky
+from relic.games.dow.fda.audio_converter import FdaAudioConverter
 from scripts.universal.chunky.extractors.common import get_runner
 from scripts.universal.common import SharedExtractorParser
 

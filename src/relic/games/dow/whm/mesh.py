@@ -10,9 +10,9 @@ from serialization_tools.vstruct import VStruct
 
 from relic.chunky import AbstractChunk, GenericDataChunk, FolderChunk
 from relic.chunky._core import ChunkType
-from relic.chunky_formats.convertable import ChunkConverterFactory
-from relic.chunky_formats.dow.whm.shared import Short4, BvolChunk, Byte4
-from relic.chunky_formats.util import ChunkCollectionX
+from relic.games.convertable import ChunkConverterFactory
+from relic.games.dow.whm.shared import Short4, BvolChunk, Byte4
+from relic.games.util import ChunkCollectionX
 from relic.file_formats.mesh_io import Float3, Float2, Short3
 
 

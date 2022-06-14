@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from relic.chunky_formats.dow.whm.whm import WhmChunky
+from relic.games.dow.whm.whm import WhmChunky
 
 # The only tmp I found in soulstorm is a Whm Chunky, so using an alias instead of repeating it
 TmpChunky = WhmChunky
