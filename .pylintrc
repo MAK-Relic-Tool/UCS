@@ -101,7 +101,7 @@ enable=c-extension-no-member
 # which contain the number of messages in each category, as well as 'statement'
 # which is the total number of statements analyzed. This score is used by the
 # global evaluation report (RP0004).
-evaluation=10.0 - ((float(4 * error + 2 * warning + 2 * refactor + 1 * convention) / (9 * statement)) * 10)
+evaluation=10.0 - ((float(4 * error + 3 * warning + 2 * refactor + 1 * convention) / ((4+3+2+1) * statement)) * 10)
 
 # Template used to display messages. This is a python new-style format string
 # used to format the message information. See doc for all details.
@@ -113,7 +113,7 @@ evaluation=10.0 - ((float(4 * error + 2 * warning + 2 * refactor + 1 * conventio
 output-format=text
 
 # Tells whether to display a full report or only the messages.
-reports=no
+reports=yes
 
 # Activate the evaluation score.
 score=yes
@@ -290,7 +290,7 @@ single-line-if-stmt=no
 
 # The type of string formatting that logging methods do. `old` means using %
 # formatting, `new` is for `{}` formatting.
-logging-format-style=old
+logging-format-style=new
 
 # Logging modules to check that the string format arguments are in logging
 # function parameter format.
