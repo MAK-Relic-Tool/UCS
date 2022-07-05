@@ -1,6 +1,5 @@
 from relic.sga.v7._serializers import archive_serializer as ArchiveIO
-from relic.sga.v7._core import Archive, Drive, Folder, File, ArchiveMetadata, version
-
+from relic.sga.v7._core import Archive, Drive, Folder, File, ArchiveMetadata, version, FileMetadata
 
 __all__ = [
     "Archive",
@@ -9,5 +8,6 @@ __all__ = [
     "File",
     "ArchiveIO",
     "version",
-    "ArchiveMetadata"
+    "ArchiveMetadata",
+    "FileMetadata"
 ]

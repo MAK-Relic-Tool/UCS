@@ -71,17 +71,18 @@ class FileDefABC:
 TMeta = TypeVar("TMeta")
 TFileMeta = TypeVar("TFileMeta")
 
-_FILE: TypeAlias = 'File[TFileMeta]'
-_FOLDER: TypeAlias = 'Folder[TFileMeta]'
-_DRIVE: TypeAlias = 'Drive[TFileMeta]'
-_FOLDER_OR_DRIVE: TypeAlias = Union[_FOLDER[TFileMeta], _DRIVE[TFileMeta]]
-_WALK: TypeAlias = IOWalk[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]]
+# From what I can tell; ForwardRefs can't be used as type aliases for mypy & act as proper forward refs
+# 'File[TFileMeta]': TypeAlias = 'File'
+# 'Folder[TFileMeta]': TypeAlias = 'Folder'
+# _DRIVE: TypeAlias = 'Drive'
+# Union['Folder[TFileMeta]','Drive[TFileMeta]']: TypeAlias = Union['Folder', 'Drive']
+_WALK: TypeAlias = IOWalk[Union['Folder[TFileMeta]', 'Drive[TFileMeta]'], 'Folder[TFileMeta]', 'File[TFileMeta]']
 
 
 @dataclass
 class File(
     IOPathable,
-    IOChild[_FOLDER_OR_DRIVE[TFileMeta]],
+    IOChild[Union['Folder[TFileMeta]', 'Drive[TFileMeta]']],
     Generic[TFileMeta]
 ):
     name: str
@@ -139,9 +140,9 @@ class File(
 @dataclass
 class Folder(
     IOPathable,
-    IOChild[_FOLDER_OR_DRIVE[TFileMeta]],
-    IOWalkable[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]],
-    IOContainer[_FOLDER[TFileMeta], _FILE[TFileMeta]],
+    IOChild[Union['Folder[TFileMeta]','Drive[TFileMeta]']],
+    IOWalkable[Union['Folder[TFileMeta]','Drive[TFileMeta]'], 'Folder[TFileMeta]', 'File[TFileMeta]'],
+    IOContainer['Folder[TFileMeta]', 'File[TFileMeta]'],
     Generic[TFileMeta]
 ):
     name: str
@@ -163,8 +164,8 @@ class Folder(
 @dataclass
 class Drive(
     IOPathable,
-    IOWalkable[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]],
-    IOContainer[_FOLDER[TFileMeta], _FILE[TFileMeta]],
+    IOWalkable[Union['Folder[TFileMeta]','Drive[TFileMeta]'], 'Folder[TFileMeta]', 'File[TFileMeta]'],
+    IOContainer['Folder[TFileMeta]', 'File[TFileMeta]'],
     Generic[TFileMeta]
 ):
     alias: str

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import PurePath
 from typing import TypeVar, Protocol, List, Optional, Iterable, BinaryIO, runtime_checkable, Sequence, Tuple
+from typing_extensions import TypeAlias
 
 TParent = TypeVar("TParent")
 TParent_co = TypeVar("TParent_co", covariant=True)
@@ -42,7 +43,7 @@ class IOContainer(Protocol[TFolder, TFile]):
     files: List[TFile]
 
 
-IOWalk = Iterable[Tuple[TParent_co, Sequence[TFolder_co], Sequence[TFile_co]]]
+IOWalk:TypeAlias = Iterable[Tuple[TParent_co, Sequence[TFolder_co], Sequence[TFile_co]]]
 
 
 class IOWalkable(Protocol[TParent_co, TFolder_co, TFile_co]):
