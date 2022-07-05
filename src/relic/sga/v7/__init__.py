@@ -1,23 +1,13 @@
-from relic.sga import _abc
-from relic.sga.v7._serializers import APISerializers
-from relic.sga.v7.core import Archive, Drive, Folder, File, ArchiveMetadata, version
+from relic.sga.v7._serializers import archive_serializer as ArchiveIO
+from relic.sga.v7._core import Archive, Drive, Folder, File, ArchiveMetadata, version
 
-
-# def _create_api():
-#     raise NotImplementedError
-    # serializer = APISerializers()
-    # api = _abc.API(version, Archive, Drive, Folder, File, serializer)
-    # return api
-
-
-API = None#_create_api()
 
 __all__ = [
     "Archive",
     "Drive",
     "Folder",
     "File",
-    "API",
+    "ArchiveIO",
     "version",
     "ArchiveMetadata"
 ]

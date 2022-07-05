@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import BinaryIO, List, Dict, Optional, Callable, Tuple, Iterable, TypeVar
+from typing import BinaryIO, List, Dict, Optional, Callable, Tuple, Iterable, TypeVar, Union
 
 from serialization_tools.size import KiB
 from serialization_tools.structx import Struct
 
 from relic.sga import _abc
-from relic.sga._abc import DriveDef, FolderDef, FileDefABC as FileDef, FileLazyInfo, TFileMetadata, TocHeader, ArchivePtrs
+from relic.sga._abc import DriveDef, FolderDef, FileDefABC as FileDef, FileLazyInfo, TFileMeta, TocHeader, ArchivePtrs, File, Folder, Drive
 from relic.sga._core import StorageType
 from relic.sga.errors import MD5MismatchError
-from relic.sga.protocols import IOContainer, StreamSerializer, T, TFile, TDrive, TFolder
+from relic.sga.protocols import IOContainer, StreamSerializer, T, TFile, TFolder
 
 
 class TocHeaderSerializer(StreamSerializer[TocHeader]):
@@ -85,28 +85,28 @@ class FolderDefSerializer(StreamSerializer[FolderDef]):
         packed: int = self.layout.pack_stream(stream, *args)
         return packed
 
+TFileDef = TypeVar("TFileDef",bound=_abc.FileDefABC)
+BuildFileMeta = Callable[[TFileDef], TFileMeta]
 
-BuildFileMeta = Callable[[FileDef], TFileMetadata]
 
-
-def assemble_files(file_defs: List[FileDef], names: Dict[int, str], data_pos: int, stream: BinaryIO, build_file_meta: Optional[BuildFileMeta] = None, decompress: bool = False):
-    files: List[_abc.File] = []
+def assemble_files(file_defs: List[TFileDef], names: Dict[int, str], data_pos: int, stream: BinaryIO, build_file_meta: BuildFileMeta[TFileDef,TFileMeta], decompress: bool = False) -> List[File[TFileMeta]]:
+    files: List[File[TFileMeta]] = []
     for file_def in file_defs:
         name = names[file_def.name_pos]
-        metadata = build_file_meta(file_def) if build_file_meta is not None else None
+        metadata:TFileMeta = build_file_meta(file_def)
         lazy_info = FileLazyInfo(data_pos + file_def.data_pos, file_def.length_in_archive, file_def.length_on_disk, stream, decompress)
         file_compressed = file_def.storage_type != StorageType.STORE
-        file = _abc.File(name=name, _data=None, storage_type=file_def.storage_type, _is_compressed=file_compressed, metadata=metadata, _lazy_info=lazy_info)
+        file = File(name=name, _data=None, storage_type=file_def.storage_type, _is_compressed=file_compressed, metadata=metadata, _lazy_info=lazy_info)
         files.append(file)
     return files
 
 
-def assemble_folders(folder_defs: List[FolderDef], names: Dict[int, str], files: List[_abc.File], file_offset: int = 0, folder_offset: int = 0):
-    folders: List[_abc.Folder] = []
+def assemble_folders(folder_defs: List[FolderDef], names: Dict[int, str], files: List[File[TFileMeta]], file_offset: int = 0, folder_offset: int = 0) -> List[Folder[TFileMeta]]:
+    folders: List[Folder[TFileMeta]] = []
     for folder_def in folder_defs:
         folder_name = names[folder_def.name_pos]
         sub_files = files[folder_def.file_range[0] - file_offset:folder_def.file_range[1] - file_offset]
-        folder = _abc.Folder(folder_name, [], sub_files, None)
+        folder = Folder(folder_name, [], sub_files, None)
         folders.append(folder)
 
     for folder_def, folder in zip(folder_defs, folders):
@@ -118,9 +118,9 @@ def assemble_folders(folder_defs: List[FolderDef], names: Dict[int, str], files:
     return folders
 
 
-def assemble_io_from_defs(drive_defs: List[DriveDef], folder_defs: List[FolderDef], file_defs: List[FileDef], names: Dict[int, str], data_pos: int, stream: BinaryIO, build_file_meta: Optional[BuildFileMeta] = None, decompress: bool = False) -> Tuple[List[_abc.Drive], List[_abc.File]]:
-    all_files: List[_abc.File] = []
-    drives: List[_abc.Drive] = []
+def assemble_io_from_defs(drive_defs: List[DriveDef], folder_defs: List[FolderDef], file_defs: List[TFileDef], names: Dict[int, str], data_pos: int, stream: BinaryIO, build_file_meta: BuildFileMeta[TFileDef,TFileMeta], decompress: bool = False) -> Tuple[List[Drive[TFileMeta]], List[File[TFileMeta]]]:
+    all_files: List[File[TFileMeta]] = []
+    drives: List[Drive[TFileMeta]] = []
     for drive_def in drive_defs:
         local_file_defs = file_defs[drive_def.file_range[0]:drive_def.file_range[1]]
         local_files = assemble_files(local_file_defs, names, data_pos, stream, build_file_meta, decompress)
@@ -130,7 +130,7 @@ def assemble_io_from_defs(drive_defs: List[DriveDef], folder_defs: List[FolderDe
 
         root_folder = drive_def.root_folder - drive_def.folder_range[0]  # make root folder relative to our folder slice
         drive_folder = local_folders[root_folder]
-        drive = _abc.Drive(drive_def.alias, drive_def.name, drive_folder.sub_folders, drive_folder.files)
+        drive = Drive(drive_def.alias, drive_def.name, drive_folder.sub_folders, drive_folder.files)
         _apply_self_as_parent(drive)
 
         all_files.extend(local_files)
@@ -138,7 +138,7 @@ def assemble_io_from_defs(drive_defs: List[DriveDef], folder_defs: List[FolderDe
     return drives, all_files
 
 
-def _apply_self_as_parent(collection: IOContainer):
+def _apply_self_as_parent(collection: Union[Folder[TFileMeta], Drive[TFileMeta]]) -> None:
     for folder in collection.sub_folders:
         folder.parent = collection
     for file in collection.files:
@@ -150,7 +150,14 @@ def _unpack_helper(stream: BinaryIO, toc_info: Tuple[int, int], header_pos: int,
     return [serializer.unpack(stream) for _ in range(toc_info[1])]
 
 
-def read_toc_definitions(stream: BinaryIO, toc: TocHeader, header_pos: int, drive_serializer: StreamSerializer[TDrive], folder_serializer: StreamSerializer[TFolder], file_serializer: StreamSerializer[TFile]):
+def read_toc_definitions(
+    stream: BinaryIO,
+    toc: TocHeader,
+    header_pos: int,
+    drive_serializer: StreamSerializer[DriveDef],
+    folder_serializer: StreamSerializer[FolderDef],
+    file_serializer: StreamSerializer[TFileDef]
+) -> Tuple[List[DriveDef],List[FolderDef],List[TFileDef]]:
     drives = _unpack_helper(stream, toc.drive_info, header_pos, drive_serializer)
     folders = _unpack_helper(stream, toc.folder_info, header_pos, folder_serializer)
     files = _unpack_helper(stream, toc.file_info, header_pos, file_serializer)
@@ -253,24 +260,22 @@ class Md5ChecksumHelper:
             raise MD5MismatchError(result, self.expected)
 
 
-TFileDef = TypeVar("TFileDef")
-
-
 def read_toc(stream: BinaryIO,
              toc_header: TocHeader,
              ptrs: ArchivePtrs,
              drive_def: StreamSerializer[DriveDef],
              folder_def: StreamSerializer[FolderDef],
              file_def: StreamSerializer[TFileDef],
-             decompress: bool, build_file_meta: Optional[BuildFileMeta] = None,
-             name_toc_is_count: bool = True):
+             decompress: bool,
+             build_file_meta: BuildFileMeta[TFileDef,TFileMeta],
+             name_toc_is_count: bool = True) -> Tuple[List[Drive[TFileMeta]], List[File[TFileMeta]]]:
     drive_defs, folder_defs, file_defs = read_toc_definitions(stream, toc_header, ptrs.header_pos, drive_def, folder_def, file_def)
     names = read_toc_names_as_count(stream, toc_header.name_info, ptrs.header_pos) if name_toc_is_count else _read_toc_names_as_size(stream, toc_header.name_info, ptrs.header_pos)
     drives, files = assemble_io_from_defs(drive_defs, folder_defs, file_defs, names, ptrs.data_pos, stream, decompress=decompress, build_file_meta=build_file_meta)
     return drives, files
 
 
-def load_lazy_data(files: List[_abc.File]):
+def load_lazy_data(files: List[File[TFileMeta]]) -> None:
     for file in files:
         lazy_info: Optional[FileLazyInfo] = file._lazy_info
         if lazy_info is None:

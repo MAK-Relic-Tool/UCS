@@ -32,6 +32,6 @@ class FileMetadata:
 
 
 Archive = _abc.Archive[ArchiveMetadata,FileMetadata]
-Folder = _abc.Folder
+Folder = _abc.Folder[FileMetadata]
 File = _abc.File[FileMetadata]
-Drive = _abc.Drive
+Drive = _abc.Drive[FileMetadata]

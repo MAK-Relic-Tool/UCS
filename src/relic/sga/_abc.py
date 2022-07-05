@@ -7,10 +7,12 @@ from io import BytesIO
 from pathlib import PurePath
 from typing import List, Optional, Tuple, BinaryIO, Generic, TypeVar, Sequence, Any, Union, Generator
 
+from typing_extensions import TypeAlias
+
 from relic.sga import protocols as p
 from relic.sga._core import StorageType
 from relic.sga.errors import DecompressedSizeMismatch
-from relic.sga.protocols import IONode, IOPathable
+from relic.sga.protocols import IOChild, IOPathable, IOWalkable, IOContainer, IOWalk
 
 
 def _build_io_path(name: str, parent: Optional[Any]) -> PurePath:
@@ -18,10 +20,6 @@ def _build_io_path(name: str, parent: Optional[Any]) -> PurePath:
         parent_path: PurePath = parent.path
         return parent_path / name
     return PurePath(name)
-
-
-TMetadata = TypeVar("TMetadata")
-TFileMetadata = TypeVar("TFileMetadata")
 
 
 @dataclass
@@ -70,55 +68,28 @@ class FileDefABC:
     storage_type: StorageType
 
 
-_WalkParent = Union['Drive[TFileMetadata]', 'Folder[TFileMetadata]']
+TMeta = TypeVar("TMeta")
+TFileMeta = TypeVar("TFileMeta")
+
+_FILE: TypeAlias = 'File[TFileMeta]'
+_FOLDER: TypeAlias = 'Folder[TFileMeta]'
+_DRIVE: TypeAlias = 'Drive[TFileMeta]'
+_FOLDER_OR_DRIVE: TypeAlias = Union[_FOLDER[TFileMeta], _DRIVE[TFileMeta]]
+_WALK: TypeAlias = IOWalk[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]]
 
 
 @dataclass
-class Drive(Generic[TFileMetadata]):
-    alias: str
-    name: str
-    sub_folders: List[Folder[TFileMetadata]]
-    files: List[File[TFileMetadata]]
-    parent: None = None
-    __ignore__ = ["parent"]
-
-    @property
-    def path(self) -> PurePath:
-        return _build_io_path(f"{self.alias}:", None)
-
-    def walk(self) -> p.IOWalk[_WalkParent, Folder[TFileMetadata], File[TFileMetadata]]:
-        yield self, self.sub_folders, self.files
-        for folder in self.sub_folders:
-            for inner_walk in folder.walk():
-                yield inner_walk
-
-
-@dataclass
-class Folder(Generic[TFileMetadata]):
-    name: str
-    sub_folders: List[Folder[TFileMetadata]]
-    files: List[File[TFileMetadata]]
-    parent: Optional[_WalkParent] = None
-
-    @property
-    def path(self) -> PurePath:
-        return _build_io_path(self.name, self.parent)
-
-    def walk(self) -> p.IOWalk[_WalkParent, Folder[TFileMetadata], File[TFileMetadata]]:
-        yield self, self.sub_folders, self.files
-        for folder in self.sub_folders:
-            for inner_walk in folder.walk():
-                yield inner_walk
-
-
-@dataclass
-class File(Generic[TFileMetadata]):
+class File(
+    IOPathable,
+    IOChild[_FOLDER_OR_DRIVE[TFileMeta]],
+    Generic[TFileMeta]
+):
     name: str
     _data: Optional[bytes]
     storage_type: StorageType
     _is_compressed: bool
-    metadata: TFileMetadata
-    parent: Optional[_WalkParent] = None
+    metadata: TFileMeta
+    parent: Optional[Drive[TFileMeta] | Folder[TFileMeta]] = None
     _lazy_info: Optional[FileLazyInfo] = None
 
     @property
@@ -165,22 +136,66 @@ class File(Generic[TFileMetadata]):
         return _build_io_path(self.name, self.parent)
 
 
-# IOParent =
+@dataclass
+class Folder(
+    IOPathable,
+    IOChild[_FOLDER_OR_DRIVE[TFileMeta]],
+    IOWalkable[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]],
+    IOContainer[_FOLDER[TFileMeta], _FILE[TFileMeta]],
+    Generic[TFileMeta]
+):
+    name: str
+    sub_folders: List[Folder[TFileMeta]]
+    files: List[File[TFileMeta]]
+    parent: Optional[Drive[TFileMeta] | Folder[TFileMeta]] = None
+
+    @property
+    def path(self) -> PurePath:
+        return _build_io_path(self.name, self.parent)
+
+    def walk(self) -> _WALK[TFileMeta]:
+        yield self, self.sub_folders, self.files
+        for folder in self.sub_folders:
+            for inner_walk in folder.walk():
+                yield inner_walk
 
 
 @dataclass
-class Archive(Generic[TMetadata, TFileMetadata]):
+class Drive(
+    IOPathable,
+    IOWalkable[_FOLDER_OR_DRIVE[TFileMeta], _FOLDER[TFileMeta], _FILE[TFileMeta]],
+    IOContainer[_FOLDER[TFileMeta], _FILE[TFileMeta]],
+    Generic[TFileMeta]
+):
+    alias: str
     name: str
-    metadata: TMetadata
-    drives: Sequence[Drive[TFileMetadata]]
+    sub_folders: List[Folder[TFileMeta]]
+    files: List[File[TFileMeta]]
 
-    def walk(self) -> p.IOWalk:
+    @property
+    def path(self) -> PurePath:
+        return _build_io_path(f"{self.alias}:", None)
+
+    def walk(self) -> _WALK[TFileMeta]:
+        yield self, self.sub_folders, self.files
+        for folder in self.sub_folders:
+            for inner_walk in folder.walk():
+                yield inner_walk
+
+
+@dataclass
+class Archive(Generic[TMeta, TFileMeta]):
+    name: str
+    metadata: TMeta
+    drives: List[Drive[TFileMeta]]
+
+    def walk(self) -> _WALK[TFileMeta]:
         for drive in self.drives:
             for inner_walk in drive.walk():
                 yield inner_walk
 
 
-TArchive = TypeVar("TArchive", bound=Archive)
+TArchive = TypeVar("TArchive", bound=Archive[Any, Any])
 
 
 class ArchiveSerializer(p.ArchiveIO[TArchive]):

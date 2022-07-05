@@ -1,18 +1,11 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from pathlib import PurePath
-from typing import TypeVar, Protocol, List, Optional, Iterable, BinaryIO, runtime_checkable, Sequence, Tuple, Generator
+from typing import TypeVar, Protocol, List, Optional, Iterable, BinaryIO, runtime_checkable, Sequence, Tuple
 
-from relic.sga._core import StorageType
-
-TMetadata = TypeVar("TMetadata")
 TParent = TypeVar("TParent")
 TParent_co = TypeVar("TParent_co", covariant=True)
 TArchive = TypeVar("TArchive")
-TArchive_co = TypeVar("TArchive_co", covariant=True)
-TDrive = TypeVar("TDrive")
-TDrive_co = TypeVar("TDrive_co", covariant=True)
 TFolder = TypeVar("TFolder")
 TFolder_co = TypeVar("TFolder_co", covariant=True)
 TFile = TypeVar("TFile")
@@ -22,6 +15,7 @@ T = TypeVar("T")
 
 @runtime_checkable
 class StreamSerializer(Protocol[T]):
+    """Serializes the Type to/from a binary stream."""
     def unpack(self, stream: BinaryIO) -> T:
         raise NotImplementedError
 
@@ -31,16 +25,19 @@ class StreamSerializer(Protocol[T]):
 
 @runtime_checkable
 class IOPathable(Protocol):
+    # pylint: disable=too-few-public-methods
     @property
     def path(self) -> PurePath:
         raise NotImplementedError
 
 
-class IONode(Protocol[TParent]):
+class IOChild(Protocol[TParent]):
+    # pylint: disable=too-few-public-methods
     parent: Optional[TParent]
 
 
 class IOContainer(Protocol[TFolder, TFile]):
+    # pylint: disable=too-few-public-methods
     sub_folders: List[TFolder]
     files: List[TFile]
 
@@ -49,16 +46,9 @@ IOWalk = Iterable[Tuple[TParent_co, Sequence[TFolder_co], Sequence[TFile_co]]]
 
 
 class IOWalkable(Protocol[TParent_co, TFolder_co, TFile_co]):
+    # pylint: disable=too-few-public-methods
     def walk(self) -> IOWalk[TParent_co, TFolder_co, TFile_co]:
         raise NotImplementedError
-
-
-class _IOFile(IOPathable, IONode[TParent], Protocol[TParent]):
-    ...
-
-
-class _IOFolder(IOWalkable[TParent_co, TFolder_co, TFile_co], IOPathable, IONode[TParent], IOContainer[TFolder, TFile], Protocol[TParent, TParent_co, TFolder, TFolder_co, TFile, TFile_co]):
-    ...
 
 
 class ArchiveIO(Protocol[TArchive]):

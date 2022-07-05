@@ -1,3 +1,6 @@
+"""
+API for Relic's SGA files
+"""
 from relic.sga._apis import apis as APIs, read
 from relic.sga._core import Version, MagicWord, StorageType, VerificationType
 
