@@ -36,16 +36,35 @@ class FileDefSerializer(StreamSerializer[FileDef]):
         modified = datetime.fromtimestamp(modified_seconds, timezone.utc)
         storage_type: StorageType = StorageType(storage_type_val)
         verification_type: VerificationType = VerificationType(verification_type_val)
-
-        return FileDef(name_rel_pos, data_rel_pos, length, store_length, storage_type, modified, verification_type, crc, hash_pos)
+        return FileDef(
+            name_pos=name_rel_pos,
+            data_pos=data_rel_pos,
+            length_on_disk=length,
+            length_in_archive=store_length,
+            storage_type=storage_type,
+            modified=modified,
+            verification=verification_type,
+            crc=crc,
+            hash_pos=hash_pos
+        )
 
     def pack(self, stream: BinaryIO, value: FileDef) -> int:
         modified: int = int(value.modified.timestamp())
         storage_type = value.storage_type.value  # convert enum to value
         verification_type = value.verification.value  # convert enum to value
-        args = value.name_pos, value.hash_pos, value.data_pos, value.length_on_disk, value.length_in_archive, storage_type, modified, verification_type, value.crc
+        args = \
+            value.name_pos,\
+            value.hash_pos,\
+            value.data_pos,\
+            value.length_on_disk,\
+            value.length_in_archive,\
+            storage_type,\
+            modified,\
+            verification_type,\
+            value.crc
         written: int = self.layout.pack_stream(stream, *args)
         return written
+
 
 @dataclass
 class ArchiveHeader:
@@ -54,15 +73,15 @@ class ArchiveHeader:
     """
     name: str
     ptrs: ArchivePtrs
-    sha_256:bytes
+    sha_256: bytes
 
 
 @dataclass
 class ArchiveFooter:
-    unk_a:int
-    unk_b:int
-    block_size:int
-
+    """Metadata that occurs after """
+    unk_a: int
+    unk_b: int
+    block_size: int
 
 
 @dataclass
@@ -73,12 +92,13 @@ class ArchiveHeaderSerializer(StreamSerializer[ArchiveHeader]):
     layout: Struct
 
     ENCODING = "utf-16-le"
+    RSV_1 = 1
 
     def unpack(self, stream: BinaryIO) -> ArchiveHeader:
         encoded_name: bytes
         encoded_name, header_pos, header_size, data_pos, data_size, rsv_1, sha_256 = self.layout.unpack_stream(stream)
-        if rsv_1 != 1:
-            raise MismatchError("Reserved Field", rsv_1, 1)
+        if rsv_1 != self.RSV_1:
+            raise MismatchError("Reserved Field", rsv_1, self.RSV_1)
 
         ptrs = ArchivePtrs(header_pos, header_size, data_pos, data_size)
         name = encoded_name.rstrip(b"").decode(self.ENCODING)
@@ -86,19 +106,29 @@ class ArchiveHeaderSerializer(StreamSerializer[ArchiveHeader]):
 
     def pack(self, stream: BinaryIO, value: ArchiveHeader) -> int:
         encoded_name = value.name.encode(self.ENCODING)
-        args = encoded_name, value.ptrs.header_pos, value.ptrs.header_size, value.ptrs.data_pos, value.ptrs.data_size, 1, value.sha_256
+        args = \
+            encoded_name, \
+            value.ptrs.header_pos, \
+            value.ptrs.header_size, \
+            value.ptrs.data_pos, \
+            value.ptrs.data_size, \
+            self.RSV_1, \
+            value.sha_256
+
         written: int = self.layout.pack_stream(stream, *args)
         return written
 
 
-
 @dataclass
 class ArchiveFooterSerializer(StreamSerializer[ArchiveFooter]):
+    """
+    Reads/Writes data that occurs after the TOC portion of the Archive Header.
+    """
     layout: Struct
 
     def unpack(self, stream: BinaryIO) -> ArchiveFooter:
         unk_a, unk_b, block_size = self.layout.unpack_stream(stream)
-        return ArchiveFooter(unk_a,unk_b,block_size)
+        return ArchiveFooter(unk_a, unk_b, block_size)
 
     def pack(self, stream: BinaryIO, value: ArchiveFooter) -> int:
         args = value.unk_a, value.unk_b, value.block_size
@@ -106,12 +136,22 @@ class ArchiveFooterSerializer(StreamSerializer[ArchiveFooter]):
         return written
 
 
-def file_def2meta(f: FileDef) -> FileMetadata:
-    return FileMetadata(f.modified, f.verification, f.crc, f.hash_pos)
+def file_def2meta(file_def: FileDef) -> FileMetadata:
+    """
+    Extract metadata from a file definition.
+
+    :param file_def: The file definition to extract metadata from.
+
+    :return: Extracted metadata.
+    """
+    return FileMetadata(file_def.modified, file_def.verification, file_def.crc, file_def.hash_pos)
 
 
 @dataclass
 class ArchiveSerializer(ArchiveSerializerABC[Archive]):
+    """
+    Reads/Writes an Archive from/to a binary stream.
+    """
     version: Version
     drive_serializer: StreamSerializer[DriveDef]
     folder_serializer: StreamSerializer[FolderDef]
@@ -122,9 +162,9 @@ class ArchiveSerializer(ArchiveSerializerABC[Archive]):
 
     def read(self, stream: BinaryIO, lazy: bool = False, decompress: bool = True) -> Archive:
         MagicWord.read_magic_word(stream)
-        version: Version = Version.unpack(stream)
-        if version != self.version:
-            raise VersionMismatchError(version, self.version)
+        stream_version: Version = Version.unpack(stream)
+        if stream_version != self.version:
+            raise VersionMismatchError(stream_version, self.version)
         header = self.archive_header_serializer.unpack(stream)
         # header_pos = stream.tell()
         stream.seek(header.ptrs.header_pos)

@@ -12,9 +12,8 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../../src'))
-assert os.path.exists(os.path.abspath('../../src/relic'))
-assert os.path.exists(os.path.abspath('../../src/relic/sga'))
 
 # -- Project information -----------------------------------------------------
 
@@ -23,8 +22,8 @@ copyright = '2022, Marcus Kertesz'
 author = 'Marcus Kertesz'
 
 # The full version, including alpha/beta/rc tags
-release = '2022.0rc0'
-
+from relic import __version__ as package_version
+release = package_version
 
 # -- General configuration ---------------------------------------------------
 
@@ -45,7 +44,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 

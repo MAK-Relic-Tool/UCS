@@ -1,7 +1,7 @@
 """
-Relic's V9 Specification for SGA files.
+Relic's V9.0 Specification for SGA files.
 
-Used in Age of Empires 4.
+Used in 'Age of Empires 4'.
 """
 
 from relic.sga.v9._serializers import archive_serializer as ArchiveIO

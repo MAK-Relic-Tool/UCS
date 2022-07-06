@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import PurePath
-from typing import List, Optional, Tuple, BinaryIO, Generic, TypeVar, Sequence, Any, Union, Generator
+from typing import List, Optional, Tuple, BinaryIO, Generic, TypeVar, Any, Union, Generator
 
 from typing_extensions import TypeAlias
 
@@ -85,6 +85,7 @@ class File(
     IOChild[Union['Folder[TFileMeta]', 'Drive[TFileMeta]']],
     Generic[TFileMeta]
 ):
+    # pylint: disable=too-many-instance-attributes
     name: str
     _data: Optional[bytes]
     storage_type: StorageType

@@ -1,5 +1,5 @@
 """
-API for Relic's `Language Files` AKA `Unicode String Files` (UniCode String -> UCS)
+API for Relic's UCS Files
 """
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from typing import TextIO, Optional, Iterable, Union, Mapping
 
 # UCS probably stands for UnicodeString
 #   I personally think that's a horribly misleading name for this file
-from serialization_tools.walkutil import filter_by_file_extension, collapse_walk_on_files, filter_by_path
+from serialization_tools.walkutil import filter_by_file_extension, collapse_walk_on_files
+from typing_extensions import TypeAlias
 
 StrOrPathLike = Union[str, PathLike[str]]
 
@@ -25,8 +26,9 @@ class UcsDict(UserDict[int, str]):
         Writes the UCS mapping to a text stream.
 
         :param stream: The output stream.
-        :param ordered: If true, the file will list the text-codes from least to greatest; text-codes closer to 0 will be at the start of the file.
-        
+        :param ordered: If true, the file will list the text-codes from least to greatest.
+            Text-codes closer to 0 will be at the start of the file.
+
         :returns: Number of bytes written.
         """
         written = 0
@@ -96,7 +98,7 @@ class UnicodeStringFile(UcsDict):
 
 
 # Alias to make me feel less butt-hurt about UnicodeStringFile's name
-LangFile = UnicodeStringFile
+LangFile:TypeAlias = UnicodeStringFile
 
 
 # TODO find a better solution
