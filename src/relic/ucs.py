@@ -1,5 +1,5 @@
 """
-API for Relic's UCS Files
+A library for reading / writing Relic's UCS (Language) files.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from typing import TextIO, Optional, Iterable, Union, Mapping
 from serialization_tools.walkutil import filter_by_file_extension, collapse_walk_on_files
 from typing_extensions import TypeAlias
 
+__version__ = '2022.1rc0'
 StrOrPathLike = Union[str, PathLike[str]]
 
 
