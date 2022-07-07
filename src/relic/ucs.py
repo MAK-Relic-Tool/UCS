@@ -11,10 +11,13 @@ from typing import TextIO, Optional, Iterable, Union, Mapping
 
 # UCS probably stands for UnicodeString
 #   I personally think that's a horribly misleading name for this file
-from serialization_tools.walkutil import filter_by_file_extension, collapse_walk_on_files
+from serialization_tools.walkutil import (
+    filter_by_file_extension,
+    collapse_walk_on_files,
+)
 from typing_extensions import TypeAlias
 
-__version__ = '2022.1rc0'
+__version__ = "2022.1rc0"
 StrOrPathLike = Union[str, PathLike[str]]
 
 
@@ -22,6 +25,7 @@ class UcsDict(UserDict[int, str]):
     """
     A mapping of text-codes to translated strings.
     """
+
     def write_stream(self, stream: TextIO, ordered: bool = False) -> int:
         """
         Writes the UCS mapping to a text stream.
@@ -46,7 +50,7 @@ class UcsDict(UserDict[int, str]):
 
         :param file: The output file.
         :param ordered: If true, the file will list the text-codes from least to greatest; text-codes closer to 0 will be at the start of the file.
-        
+
         :returns: Number of bytes written.
         """
         with open(file, "w", encoding="utf-16") as handle:
@@ -57,13 +61,14 @@ class UnicodeStringFile(UcsDict):
     """
     A language file
     """
+
     @classmethod
     def read(cls, file: StrOrPathLike) -> UnicodeStringFile:
         """
         Read a UCS file from the file system.
 
         :param file: The file path to read from.
-        
+
         :returns: The UCS file.
         """
         with open(file, "r", encoding="utf-16") as handle:
@@ -75,7 +80,7 @@ class UnicodeStringFile(UcsDict):
         Read a UCS file from a stream.
 
         :param stream: The stream to read from.
-        
+
         :returns: The UCS file.
         """
         ucs_file = UnicodeStringFile()
@@ -92,14 +97,14 @@ class UnicodeStringFile(UcsDict):
                 raise TypeError(f"Unable to parse line @{line_num}")
 
             num_str = parts[0]
-            line_str = parts[1].rstrip("\n") if len(parts) >= 2 else ''
+            line_str = parts[1].rstrip("\n") if len(parts) >= 2 else ""
             num = int(num_str)
             ucs_file[num] = line_str
         return ucs_file
 
 
 # Alias to make me feel less butt-hurt about UnicodeStringFile's name
-LangFile:TypeAlias = UnicodeStringFile
+LangFile: TypeAlias = UnicodeStringFile
 
 
 # TODO find a better solution
@@ -108,7 +113,7 @@ def lang_code_to_name(lang_code: str) -> Optional[str]:
     Convert a language code to the name used by the file-system.
 
     :param lang_code: The language code.
-    
+
     :returns: The name used to mark UCS files.
     """
     lang_code = lang_code.lower()
@@ -120,7 +125,9 @@ def lang_code_to_name(lang_code: str) -> Optional[str]:
     return lookup.get(lang_code)
 
 
-def walk_ucs(folder: StrOrPathLike, lang_code: Optional[str] = None) -> Iterable[StrOrPathLike]:
+def walk_ucs(
+    folder: StrOrPathLike, lang_code: Optional[str] = None
+) -> Iterable[StrOrPathLike]:
     """
     Recursively walks all UCS files with the given language code.
 
@@ -131,7 +138,7 @@ def walk_ucs(folder: StrOrPathLike, lang_code: Optional[str] = None) -> Iterable
     """
     walk_result = walk(folder)
     walk_result = filter_by_file_extension(walk_result, ".ucs")
-    file_walk_result:Iterable[StrOrPathLike] = collapse_walk_on_files(walk_result)
+    file_walk_result: Iterable[StrOrPathLike] = collapse_walk_on_files(walk_result)
     if lang_code:
         lang_name = lang_code_to_name(lang_code)
         if lang_name:
@@ -147,32 +154,41 @@ class LangEnvironment(UcsDict):
     """
     Represents a full translated language, with features to validate text-codes/strings
     """
-    def __init__(self, allow_replacement: bool = False, __dict: Optional[Mapping[int, str]] = None):
+
+    def __init__(
+        self,
+        allow_replacement: bool = False,
+        __dict: Optional[Mapping[int, str]] = None,
+    ):
         super().__init__(__dict)
         self.allow_replacement = allow_replacement
 
-    def __setitem__(self, k:int, v:str) -> None:
+    def __setitem__(self, k: int, v: str) -> None:
         if self.allow_replacement:
             super(UcsDict, self).__setitem__(k, v)
         else:
             try:
                 existing = self.__getitem__(k)
-                raise ValueError(f"Key '{k}' exists! Trying to replace '{existing}' with '{v}'!")
+                raise ValueError(
+                    f"Key '{k}' exists! Trying to replace '{existing}' with '{v}'!"
+                )
             except KeyError as e:
                 super(UcsDict, self).__setitem__(k, v)
 
     @classmethod
-    def load_environment(cls,
-                         folder: StrOrPathLike,
-                         lang_code: Optional[str] = None,
-                         allow_replacement: bool = False) -> LangEnvironment:
+    def load_environment(
+        cls,
+        folder: StrOrPathLike,
+        lang_code: Optional[str] = None,
+        allow_replacement: bool = False,
+    ) -> LangEnvironment:
         """
         Creates an environment by recursively reading UCS files of the specified langauge from the specified folder.
 
         :param folder: The root folder to search.
         :param lang_code: The language of files to read.
         :param allow_replacement: If False, the environment will error if a UCS file overwrites a translation.
-        
+
         :returns: The created Language Environment.
         """
         lang_env = LangEnvironment(allow_replacement=allow_replacement)
@@ -184,7 +200,7 @@ class LangEnvironment(UcsDict):
         Reads a UCS file into the environment.
 
         :param file: The UCS file.
-        
+
         :returns: Nothing, the environment is updated in-place.
         """
         lang_file = LangFile.read(file)
@@ -195,7 +211,7 @@ class LangEnvironment(UcsDict):
         Reads a UCS stream into the environment.
 
         :param stream: The UCS stream.
-        
+
         :returns: Nothing, the environment is updated in-place.
         """
         lang_file = LangFile.read_stream(stream)
@@ -207,7 +223,7 @@ class LangEnvironment(UcsDict):
 
         :param folder: The root folder to search.
         :param lang_code: The language to scan for. If none is given; defaults to English.
-        
+
         :returns: Nothing, the environment is updated in-place.
         """
         lang_code = lang_code if lang_code is not None else "en"
@@ -221,18 +237,22 @@ _DEFAULT_REPLACEMENT = ""
 
 def _file_safe_string(word: str, replace: Optional[str] = None) -> str:
     replace = replace or _DEFAULT_REPLACEMENT
-    replace = __safe_regex.sub(_DEFAULT_REPLACEMENT, replace)  # If replace is illegal, use default
+    replace = __safe_regex.sub(
+        _DEFAULT_REPLACEMENT, replace
+    )  # If replace is illegal, use default
     word = __safe_regex.sub(replace, word)
     return word
 
 
-def get_lang_string_for_file(environment: Union[LangEnvironment, LangFile], file_path: str) -> str:
+def get_lang_string_for_file(
+    environment: Union[LangEnvironment, LangFile], file_path: str
+) -> str:
     """
     Gets the subtitles for an audio file.
 
     :param environment: A language environment which maps codes to translations.
     :param file_path: The path of the audio file.
-    
+
     :returns: The subtitles in the requested language.
     """
     dir_path, f_path = split(file_path)
@@ -265,7 +285,7 @@ def get_lang_string_for_file(environment: Union[LangEnvironment, LangFile], file
     if len(replacement) > max_len:
         for i in range(max_trim):
             if replacement[max_len - i - 1] == " ":
-                replacement = replacement[:max_len - i] + "..."
+                replacement = replacement[: max_len - i] + "..."
     if len(replacement) > max_len:
         replacement = replacement[:max_len] + "..."
 
