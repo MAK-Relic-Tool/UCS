@@ -3,6 +3,7 @@ A library for reading / writing Relic's UCS (Language) files.
 """
 from __future__ import annotations
 
+import os
 import re
 from collections import UserDict
 from os import PathLike, walk
@@ -49,7 +50,8 @@ class UcsDict(UserDict[int, str]):
         Writes the UCS mapping to a text file.
 
         :param file: The output file.
-        :param ordered: If true, the file will list the text-codes from least to greatest; text-codes closer to 0 will be at the start of the file.
+        :param ordered: If true, the file will list the text-codes from least to greatest;
+            text-codes closer to 0 will be at the start of the file.
 
         :returns: Number of bytes written.
         """
@@ -136,17 +138,30 @@ def walk_ucs(
 
     :returns: An iterable collection of all UCS file paths.
     """
+    # NOTE: serialization_tools could avoid the wierd coercion hacks by using a generic instead of a Union
     walk_result = walk(folder)
     walk_result = filter_by_file_extension(walk_result, ".ucs")
     file_walk_result: Iterable[StrOrPathLike] = collapse_walk_on_files(walk_result)
+
+    def coerce_str(value: StrOrPathLike) -> str:
+        if isinstance(value, PathLike):
+            return os.fspath(value)
+        return value
+
     if lang_code:
         lang_name = lang_code_to_name(lang_code)
         if lang_name:
             # bug in filter_by_path
-            file_walk_result = (file for file in file_walk_result if "Locale" in file)
-            file_walk_result = (file for file in file_walk_result if lang_name in file)
-            # file_walk_result = (file for file in file_walk_result if filter_by_path(file, whitelist=["Locale"]))  # Only files that have Locale
-            # file_walk_result = (file for file in file_walk_result if filter_by_path(file, whitelist=[lang_name]))  # From there, only files of the given language
+            coerced_file_walk_result: Iterable[str] = (
+                coerce_str(file) for file in file_walk_result
+            )
+            coerced_file_walk_result = (
+                file for file in coerced_file_walk_result if "Locale" in file
+            )
+            coerced_file_walk_result = (
+                file for file in coerced_file_walk_result if lang_name in file
+            )
+            file_walk_result = coerced_file_walk_result  # name changed to retype
     return file_walk_result
 
 
@@ -172,7 +187,7 @@ class LangEnvironment(UcsDict):
                 raise ValueError(
                     f"Key '{k}' exists! Trying to replace '{existing}' with '{v}'!"
                 )
-            except KeyError as e:
+            except KeyError:
                 super(UcsDict, self).__setitem__(k, v)
 
     @classmethod
