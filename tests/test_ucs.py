@@ -1,13 +1,11 @@
 import json
+from io import StringIO
 from pathlib import Path
-from typing import List, Iterable, Tuple, Optional, Union, Dict
+from typing import List, Iterable, Tuple, Dict, TextIO
 
 import pytest
 
-import relic.sga.v2
-from relic import ucs
-from relic.sga import Version, MagicWord
-from relic.ucs import LangEnvironment, LangFile
+from relic.ucs import UnicodeStringFile
 
 _path = Path(__file__).parent
 try:
@@ -17,76 +15,51 @@ try:
 except IOError as e:
     file_sources = {}
 
+if "dirs" not in file_sources:
+    file_sources["dirs"] = []
+
+__implicit_test_data = str(_path / "test_data")
+
+if __implicit_test_data not in file_sources["dirs"]:
+    file_sources["dirs"].append(__implicit_test_data)
+
 
 def ucs_scan_directory(root_dir: str) -> Iterable[str]:
     root_directory = Path(root_dir)
     for path_object in root_directory.glob('**/*.ucs'):
-        yield str(path_object)
+        if path_object.with_suffix(".json").exists():  # ensure expected results file is also present
+            yield str(path_object)
 
 
-def sga_scan_directory(root_dir: str, desired_version: Version) -> Iterable[str]:
-    root_directory = Path(root_dir)
-    for path_object in root_directory.glob('**/*.sga'):
-        with path_object.open("rb") as stream:
-            if not MagicWord.check_magic_word(stream, advance=True):
-                continue
-            version = Version.unpack(stream)
-            if version != desired_version:
-                continue
-        yield str(path_object)
+ucs_test_files: List[str] = []
 
+for dir in file_sources.get("dirs", []):
+    results = ucs_scan_directory(dir)
+    ucs_test_files.extend(results)
+ucs_test_files.extend(file_sources.get("files", []))
 
-def prepare_for_parametrize(files: Iterable[str]) -> Iterable[Tuple[str]]:
-    return [(_,) for _ in files]
-
-
-# Implicit path locations
-def _update_implicit_file_sources(src_key: str, sources: Dict = None):
-    if sources is None:
-        sources = file_sources
-    if src_key not in sources:
-        sources[src_key] = {}
-    if "dirs" not in sources[src_key]:
-        sources[src_key]["dirs"] = []
-    dirs: List[str] = sources[src_key]["dirs"]
-    dirs.append(str(_path / "test_data" / src_key))
-
-
-def _helper(src_key: str, version: Version, sources: Dict = None):
-    if sources is None:
-        sources = file_sources
-    _update_implicit_file_sources(src_key, sources)
-    try:
-        local_sources = sources.get(src_key, {})
-        files = set()
-        for src_dir in local_sources.get("dirs", []):
-            for f in sga_scan_directory(src_dir, version):
-                files.add(f)
-        for src_file in local_sources.get("files", []):
-            files.add(src_file)
-        return files
-        # return prepare_for_parametrize(files)
-    except IOError as e:
-        return tuple()
-
-
-v2_en_env = LangEnvironment.load_environment(file_sources.get("v2", {}).get("LangEnv"))
-v2_archives = _helper("SGA", relic.sga.v2.version, file_sources.get("v2", {}))
+ucs_test_files = list(set(ucs_test_files))  # Get unique paths
 
 
 class TestLangEnvironment:
-    @pytest.mark.parametrize(["folder"], [*prepare_for_parametrize(file_sources.get("LangEnv", []))])
-    def test_load_env(self, folder: str, lang_code: Optional[str] = None, allow_replacement: bool = False):
-        # Not the best test; but so long as no errors are occurring; we know it's somewhat working
-        _ = LangEnvironment.load_environment(folder, lang_code, allow_replacement)
+    @pytest.fixture(params=ucs_test_files)
+    def ucs_file_and_data(self, request) -> Tuple[StringIO, Dict[int, str]]:
+        ucs_file:str = request.param
+        p = Path(ucs_file)
+        p = p.with_suffix('.json')
 
-    @pytest.mark.parametrize(["env", "archive_path"], [*zip([v2_en_env] * len(v2_archives), v2_archives)])
-    def test_get_lang_string_for_file(self, env: Union[LangEnvironment, LangFile], archive_path: str):
-        # Not the best test; but so long as no errors are occurring; we know it's somewhat working
-        with open(archive_path, "rb") as stream:
-            archive = relic.sga.v2.ArchiveIO.read(stream, lazy=True)
-            for _, _, files in archive.walk():
-                for file in files:
-                    name: str = file.name
-                    if name.endswith(".fda"):  # audio file
-                        _ = ucs.get_lang_string_for_file(env, name)
+        with open(p, "r") as data:
+            lookup: Dict[str, str] = json.load(data)
+            coerced_lookup: Dict[int, str] = {int(key): value for key, value in lookup.items()}
+
+        with open(ucs_file, "r") as ucs_handle:
+            text = ucs_handle.read()
+
+        return StringIO(text), coerced_lookup
+
+    def test_ucs(self, ucs_file_and_data: Tuple[TextIO, Dict[int, str]]):
+        ucs_stream, ucs_lookup = ucs_file_and_data
+        ucs_file = UnicodeStringFile.read_stream(ucs_stream)
+        for code, text in ucs_file.items():
+            assert code in ucs_lookup
+            assert text == ucs_lookup[code]
