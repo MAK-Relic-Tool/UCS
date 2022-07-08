@@ -1,6 +1,8 @@
 name: Pylint
 
 on:
+  workflow_dispatch:
+
   push:
     branches: [ main ]
     paths:
@@ -20,37 +22,7 @@ on:
       - 'requirements.txt'
 
 jobs:
-  pytest:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10"]
-
-    name: Pylint ${{ matrix.python-version }}
-
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Upgrade Pip
-        run: |
-          python -m pip install --upgrade pip
-
-      - name: Install Tools (Pylint)
-        run: |
-          python -m pip install pylint
-
-      - name: Install Requirements
-        run: |
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Run Pylint
-      run: |
-        pylint src/relic
+  pylint:
+    uses: MAK-Relic-Tool/Workflows/.github/workflows/pylint.yml@main
+    with:
+      path: "src/relic"
