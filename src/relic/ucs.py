@@ -17,7 +17,7 @@ from serialization_tools.walkutil import (
 )
 from typing_extensions import TypeAlias
 
-__version__ = "2022.1rc0"
+__version__ = "1.0.0"
 StrOrPathLike = Union[str, PathLike[str]]
 
 
