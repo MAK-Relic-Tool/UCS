@@ -23,4 +23,4 @@ jobs:
   pylint:
     uses: MAK-Relic-Tool/Workflows/.github/workflows/pylint.yml@main
     with:
-      path: "src/relic/ucs"
+      path: "src"
