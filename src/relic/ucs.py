@@ -16,7 +16,7 @@ from serialization_tools.walkutil import (
     filter_by_file_extension,
     collapse_walk_on_files,
 )
-from typing_extensions import TypeAlias
+from relic.core.typeshed import TypeAlias
 
 __version__ = "1.0.0"
 StrOrPathLike = Union[str, PathLike[str]]
