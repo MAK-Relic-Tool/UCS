@@ -86,13 +86,15 @@ class UcsFile(UcsDict):
         """
         ucs_file = UcsFile()
 
-        prev_num: int = None
+        prev_num: Optional[int] = None
         # prev_str: str = None
         for line_num, line in enumerate(stream.readlines()):
             safe_line = line.lstrip()
             parts = safe_line.split(maxsplit=1)
 
             if len(parts) == 0:
+                if prev_num is None:
+                    raise TypeError(f"Unable to parse line @{line_num}")
                 ucs_file[prev_num] += line
                 continue
             elif len(parts) > 2:
@@ -105,6 +107,8 @@ class UcsFile(UcsDict):
                 ucs_file[num] = line_str
                 prev_num = num
             except ValueError:  # Not a num; continuation of prev
+                if prev_num is None:
+                    raise TypeError(f"Unable to parse line @{line_num}")
                 ucs_file[prev_num] += safe_line
 
         return ucs_file
