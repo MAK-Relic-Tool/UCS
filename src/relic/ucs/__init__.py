@@ -16,7 +16,6 @@ from serialization_tools.walkutil import (
     filter_by_file_extension,
     collapse_walk_on_files,
 )
-from relic.core.typeshed import TypeAlias
 
 __version__ = "1.0.0"
 StrOrPathLike = Union[str, PathLike[str]]
@@ -59,13 +58,13 @@ class UcsDict(UserDict[int, str]):
             return self.write_stream(handle, ordered)
 
 
-class UnicodeStringFile(UcsDict):
+class UcsFile(UcsDict):
     """
     A language file
     """
 
     @classmethod
-    def read(cls, file: StrOrPathLike) -> UnicodeStringFile:
+    def read(cls, file: StrOrPathLike) -> UcsFile:
         """
         Read a UCS file from the file system.
 
@@ -77,7 +76,7 @@ class UnicodeStringFile(UcsDict):
             return cls.read_stream(handle)
 
     @classmethod
-    def read_stream(cls, stream: TextIO) -> UnicodeStringFile:
+    def read_stream(cls, stream: TextIO) -> UcsFile:
         """
         Read a UCS file from a stream.
 
@@ -85,31 +84,42 @@ class UnicodeStringFile(UcsDict):
 
         :returns: The UCS file.
         """
-        ucs_file = UnicodeStringFile()
+        ucs_file = UcsFile()
 
-        # prev_num: int = None
+        prev_num: Optional[int] = None
         # prev_str: str = None
         for line_num, line in enumerate(stream.readlines()):
             safe_line = line.lstrip()
             parts = safe_line.split(maxsplit=1)
 
             if len(parts) == 0:
+                if prev_num is None:
+                    raise TypeError(f"Unable to parse line @{line_num}")
+                ucs_file[prev_num] += line
                 continue
             if len(parts) > 2:
                 raise TypeError(f"Unable to parse line @{line_num}")
-
+            # Try parse ucs ID code
             num_str = parts[0]
             line_str = parts[1].rstrip("\n") if len(parts) >= 2 else ""
-            num = int(num_str)
-            ucs_file[num] = line_str
+            try:
+                num = int(num_str)
+                ucs_file[num] = line_str
+                prev_num = num
+            except ValueError as ex:  # Not a num; continuation of prev
+                if prev_num is None:
+                    raise TypeError(f"Unable to parse line @{line_num}") from ex
+                ucs_file[prev_num] += safe_line
         return ucs_file
 
 
-# Alias to make me feel less butt-hurt about UnicodeStringFile's name
-LangFile: TypeAlias = UnicodeStringFile
+# I could use the 'langcodes' library; but I'm mostly concerned about how Relic's games handle the lang-code naming
+#   For example; langcodes might return `Chinese (Simplified)` when I need `Chinese`
+#       Rather than rely on a 3rd party library, I'll just allow users to add lang codes manually
+#       This way; if a UCS language scheme changes between games, I can then use a custom LANG_CODE_TABLE per game
+LANG_CODE_TABLE = {"en": "English"}
 
 
-# TODO find a better solution
 def lang_code_to_name(lang_code: str) -> Optional[str]:
     """
     Convert a language code to the name used by the file-system.
@@ -119,12 +129,7 @@ def lang_code_to_name(lang_code: str) -> Optional[str]:
     :returns: The name used to mark UCS files.
     """
     lang_code = lang_code.lower()
-    lookup = {
-        "en": "English",
-        # I could do what I did for EG and change language for get the Locale folders for each; but I won't.
-        #   If somebody ever uses this; add it here
-    }
-    return lookup.get(lang_code)
+    return LANG_CODE_TABLE.get(lang_code)
 
 
 def walk_ucs(
@@ -218,7 +223,7 @@ class LangEnvironment(UcsDict):
 
         :returns: Nothing, the environment is updated in-place.
         """
-        lang_file = LangFile.read(file)
+        lang_file = UcsFile.read(file)
         self.update(lang_file)
 
     def read_stream(self, stream: TextIO) -> None:
@@ -229,7 +234,7 @@ class LangEnvironment(UcsDict):
 
         :returns: Nothing, the environment is updated in-place.
         """
-        lang_file = LangFile.read_stream(stream)
+        lang_file = UcsFile.read_stream(stream)
         self.update(lang_file)
 
     def read_all(self, folder: StrOrPathLike, lang_code: Optional[str] = None) -> None:
@@ -260,7 +265,7 @@ def _file_safe_string(word: str, replace: Optional[str] = None) -> str:
 
 
 def get_lang_string_for_file(
-    environment: Union[LangEnvironment, LangFile], file_path: str
+    environment: Union[LangEnvironment, UcsFile], file_path: str
 ) -> str:
     """
     Gets the subtitles for an audio file.
@@ -275,9 +280,10 @@ def get_lang_string_for_file(
     try:
         # Really arbitrary 'gotcha', some speech files have a random 'b' after the VO Code
         #   This is probably due to a bug in my code, but this will fix the issue
-        # TODO find out if this bug is my fault
-        if file_name[-1] == "b":
-            file_name = file_name[:-1]
+        #       Believe this is fixed in SGA
+        # if file_name[-1] == "b":
+        #     # raise NotImplementedError(file_name)
+        #     file_name = file_name[:-1]
         num = int(file_name)
     except (ValueError, IndexError):
         return file_path
@@ -306,3 +312,14 @@ def get_lang_string_for_file(
 
     replacement = _file_safe_string(replacement)
     return join(dir_path, replacement + f" ~ Clip {num}" + ext)
+
+
+__all__ = [
+    "UcsDict",
+    "UcsFile",
+    "lang_code_to_name",
+    "walk_ucs",
+    "LangEnvironment",
+    "get_lang_string_for_file",
+    "LANG_CODE_TABLE",
+]
