@@ -5,7 +5,7 @@ from typing import List, Iterable, Tuple, Dict, TextIO
 
 import pytest
 
-from relic.ucs import UnicodeStringFile
+from relic.ucs import UcsFile
 
 _path = Path(__file__).parent
 try:
@@ -18,7 +18,7 @@ except IOError as e:
 if "dirs" not in file_sources:
     file_sources["dirs"] = []
 
-__implicit_test_data = str(_path / "test_data")
+__implicit_test_data = str(_path / "data")
 
 if __implicit_test_data not in file_sources["dirs"]:
     file_sources["dirs"].append(__implicit_test_data)
@@ -59,7 +59,7 @@ class TestLangEnvironment:
 
     def test_ucs(self, ucs_file_and_data: Tuple[TextIO, Dict[int, str]]):
         ucs_stream, ucs_lookup = ucs_file_and_data
-        ucs_file = UnicodeStringFile.read_stream(ucs_stream)
+        ucs_file = UcsFile.read_stream(ucs_stream)
         for code, text in ucs_file.items():
             assert code in ucs_lookup
             assert text == ucs_lookup[code]

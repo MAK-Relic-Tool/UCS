@@ -16,7 +16,6 @@ from serialization_tools.walkutil import (
     filter_by_file_extension,
     collapse_walk_on_files,
 )
-from relic.core.typeshed import TypeAlias
 
 __version__ = "1.0.0"
 StrOrPathLike = Union[str, PathLike[str]]
@@ -59,13 +58,13 @@ class UcsDict(UserDict[int, str]):
             return self.write_stream(handle, ordered)
 
 
-class UnicodeStringFile(UcsDict):
+class UcsFile(UcsDict):
     """
     A language file
     """
 
     @classmethod
-    def read(cls, file: StrOrPathLike) -> UnicodeStringFile:
+    def read(cls, file: StrOrPathLike) -> UcsFile:
         """
         Read a UCS file from the file system.
 
@@ -77,7 +76,7 @@ class UnicodeStringFile(UcsDict):
             return cls.read_stream(handle)
 
     @classmethod
-    def read_stream(cls, stream: TextIO) -> UnicodeStringFile:
+    def read_stream(cls, stream: TextIO) -> UcsFile:
         """
         Read a UCS file from a stream.
 
@@ -85,7 +84,7 @@ class UnicodeStringFile(UcsDict):
 
         :returns: The UCS file.
         """
-        ucs_file = UnicodeStringFile()
+        ucs_file = UcsFile()
 
         # prev_num: int = None
         # prev_str: str = None
@@ -103,10 +102,6 @@ class UnicodeStringFile(UcsDict):
             num = int(num_str)
             ucs_file[num] = line_str
         return ucs_file
-
-
-# Alias to make me feel less butt-hurt about UnicodeStringFile's name
-LangFile: TypeAlias = UnicodeStringFile
 
 
 # TODO find a better solution
@@ -218,7 +213,7 @@ class LangEnvironment(UcsDict):
 
         :returns: Nothing, the environment is updated in-place.
         """
-        lang_file = LangFile.read(file)
+        lang_file = UcsFile.read(file)
         self.update(lang_file)
 
     def read_stream(self, stream: TextIO) -> None:
@@ -229,7 +224,7 @@ class LangEnvironment(UcsDict):
 
         :returns: Nothing, the environment is updated in-place.
         """
-        lang_file = LangFile.read_stream(stream)
+        lang_file = UcsFile.read_stream(stream)
         self.update(lang_file)
 
     def read_all(self, folder: StrOrPathLike, lang_code: Optional[str] = None) -> None:
@@ -260,7 +255,7 @@ def _file_safe_string(word: str, replace: Optional[str] = None) -> str:
 
 
 def get_lang_string_for_file(
-    environment: Union[LangEnvironment, LangFile], file_path: str
+    environment: Union[LangEnvironment, UcsFile], file_path: str
 ) -> str:
     """
     Gets the subtitles for an audio file.
@@ -306,3 +301,13 @@ def get_lang_string_for_file(
 
     replacement = _file_safe_string(replacement)
     return join(dir_path, replacement + f" ~ Clip {num}" + ext)
+
+
+__all__ = [
+    "UcsDict",
+    "UcsFile",
+    "lang_code_to_name",
+    "walk_ucs",
+    "LangEnvironment",
+    "get_lang_string_for_file",
+]
