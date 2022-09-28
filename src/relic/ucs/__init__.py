@@ -97,7 +97,7 @@ class UcsFile(UcsDict):
                     raise TypeError(f"Unable to parse line @{line_num}")
                 ucs_file[prev_num] += line
                 continue
-            elif len(parts) > 2:
+            if len(parts) > 2:
                 raise TypeError(f"Unable to parse line @{line_num}")
             # Try parse ucs ID code
             num_str = parts[0]
@@ -106,11 +106,10 @@ class UcsFile(UcsDict):
                 num = int(num_str)
                 ucs_file[num] = line_str
                 prev_num = num
-            except ValueError:  # Not a num; continuation of prev
+            except ValueError as ex:  # Not a num; continuation of prev
                 if prev_num is None:
-                    raise TypeError(f"Unable to parse line @{line_num}")
+                    raise TypeError(f"Unable to parse line @{line_num}") from ex
                 ucs_file[prev_num] += safe_line
-
         return ucs_file
 
 
