@@ -27,7 +27,9 @@ ucs__all__ = [
     "walk_ucs",
     "LangEnvironment",
     "get_lang_string_for_file",
+    "LANG_CODE_TABLE",
 ]
+
 
 def module_imports_helper(submodule: str, all: List[str]) -> Iterable[Tuple[str, str]]:
     return zip([submodule] * len(all), all)

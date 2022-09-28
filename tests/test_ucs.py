@@ -26,8 +26,10 @@ if __implicit_test_data not in file_sources["dirs"]:
 
 def ucs_scan_directory(root_dir: str) -> Iterable[str]:
     root_directory = Path(root_dir)
-    for path_object in root_directory.glob('**/*.ucs'):
-        if path_object.with_suffix(".json").exists():  # ensure expected results file is also present
+    for path_object in root_directory.glob("**/*.ucs"):
+        if path_object.with_suffix(
+            ".json"
+        ).exists():  # ensure expected results file is also present
             yield str(path_object)
 
 
@@ -44,13 +46,15 @@ ucs_test_files = list(set(ucs_test_files))  # Get unique paths
 class TestLangEnvironment:
     @pytest.fixture(params=ucs_test_files)
     def ucs_file_and_data(self, request) -> Tuple[StringIO, Dict[int, str]]:
-        ucs_file:str = request.param
+        ucs_file: str = request.param
         p = Path(ucs_file)
-        p = p.with_suffix('.json')
+        p = p.with_suffix(".json")
 
         with open(p, "r") as data:
             lookup: Dict[str, str] = json.load(data)
-            coerced_lookup: Dict[int, str] = {int(key): value for key, value in lookup.items()}
+            coerced_lookup: Dict[int, str] = {
+                int(key): value for key, value in lookup.items()
+            }
 
         with open(ucs_file, "r") as ucs_handle:
             text = ucs_handle.read()
