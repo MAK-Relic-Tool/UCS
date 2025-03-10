@@ -1,8 +1,10 @@
 """
 A library for reading / writing Relic's UCS (Language) files.
 """
+
 from __future__ import annotations
 
+import itertools
 import os
 import re
 from collections import UserDict
@@ -12,12 +14,9 @@ from typing import TextIO, Optional, Iterable, Union, Mapping
 
 # UCS probably stands for UnicodeString
 #   I personally think that's a horribly misleading name for this file
-from serialization_tools.walkutil import (
-    filter_by_file_extension,
-    collapse_walk_on_files,
-)
 
-__version__ = "1.0.0"
+
+__version__ = "1.1.0"
 StrOrPathLike = Union[str, PathLike[str]]
 
 
@@ -143,10 +142,13 @@ def walk_ucs(
 
     :returns: An iterable collection of all UCS file paths.
     """
-    # NOTE: serialization_tools could avoid the wierd coercion hacks by using a generic instead of a Union
-    walk_result = walk(folder)
-    walk_result = filter_by_file_extension(walk_result, ".ucs")
-    file_walk_result: Iterable[StrOrPathLike] = collapse_walk_on_files(walk_result)
+    walk_result = (
+        (file for file in files if splitext(file)[1].lower() == ".ucs")
+        for (_, _, files) in walk(folder)
+    )
+    file_walk_result: Iterable[StrOrPathLike] = itertools.chain.from_iterable(
+        walk_result
+    )
 
     def coerce_str(value: StrOrPathLike) -> str:
         if isinstance(value, PathLike):

@@ -24,4 +24,3 @@ For more information, see [pip VCS support](https://pip.pypa.io/en/stable/topics
 ```
 pip install git+https://github.com/MAK-Relic-Tool/Relic-Tool-UCS
 ```
-

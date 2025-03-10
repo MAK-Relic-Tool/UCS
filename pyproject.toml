@@ -1,6 +1,65 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.2"]
+
+[project]
+authors = [{name = "Marcus Kertesz"}]
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "relic-tool-core >= 2.0.0"
+]
+description = "A library for reading / writing Relic's UCS (Language) files."
+dynamic = ["version"]
+name = "relic-tool-ucs"
+requires-python = ">=3.9"
+
+[project.readme]
+content-type = "text/markdown"
+file = "README.md"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/MAK-Relic-Tool/Issue-Tracker/issues"
+Homepage = "https://github.com/MAK-Relic-Tool/Relic-Tool-UCS"
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+no_implicit_optional = true
+no_implicit_reexport = true
+strict_concatenate = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[tool.mypy.overrides]
+ignore_errors = true
+ignore_missing_imports = true
+module = ["tests.*"]
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "relic.ucs.__version__"}
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
